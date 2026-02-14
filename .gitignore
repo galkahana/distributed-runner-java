@@ -55,3 +55,8 @@ metals.sbt
 hs_err_pid*
 replay_pid*
 
+
+# Claude
+.claude
+.claude-plans
+

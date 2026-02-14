@@ -3,14 +3,14 @@ package io.github.galkahana.distributedrunner;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class SimplifiedMapReduceTest {
 
@@ -53,7 +53,7 @@ public class SimplifiedMapReduceTest {
             },
             Integer::sum,
             0
-        );
+        ).join();
 
         // Assert
         assertEquals(totalLetters.intValue(), expectedLetters);
@@ -82,7 +82,7 @@ public class SimplifiedMapReduceTest {
                     .forEach(num -> processedCounts.computeIfAbsent(num, k -> new AtomicInteger(0)).incrementAndGet());
                 return null;
             }
-        );
+        ).join();
 
         // Assert - Verify each number was processed exactly once
         for (Integer num : numbers) {
@@ -126,7 +126,7 @@ public class SimplifiedMapReduceTest {
             },
             Integer::sum,
             0
-        );
+        ).join();
 
         // Assert
         int expectedSum = numbers.stream().mapToInt(Integer::intValue).sum();
@@ -147,7 +147,7 @@ public class SimplifiedMapReduceTest {
             new SimplifiedMapReduce<>(NUM_PARTITIONS, NUM_WORKERS, 2); // Only 2 retries
 
         // Act & Assert - This should throw after max retries exceeded
-        assertThrows(RuntimeException.class, () -> {
+        CompletionException ex = assertThrows(CompletionException.class, () -> {
             mapReduce.process(
                 numbers,
                 task -> {
@@ -156,8 +156,9 @@ public class SimplifiedMapReduceTest {
                 },
                 Integer::sum,
                 0
-            );
+            ).join();
         });
+        assertInstanceOf(RuntimeException.class, ex.getCause());
     }
 
     @Test
@@ -188,7 +189,7 @@ public class SimplifiedMapReduceTest {
             },
             Integer::sum,
             0
-        );
+        ).join();
 
         // Assert
         int totalItems = itemsPerPartition.values().stream()
@@ -214,13 +215,13 @@ public class SimplifiedMapReduceTest {
 
         // Act - Process with different partition counts
         Integer result4Partitions = new SimplifiedMapReduce<List<String>, Integer, Integer>(4, 4, MAX_RETRIES)
-            .process(testData, this::countLettersInPartition, Integer::sum, 0);
+            .process(testData, this::countLettersInPartition, Integer::sum, 0).join();
 
         Integer result8Partitions = new SimplifiedMapReduce<List<String>, Integer, Integer>(8, 4, MAX_RETRIES)
-            .process(testData, this::countLettersInPartition, Integer::sum, 0);
+            .process(testData, this::countLettersInPartition, Integer::sum, 0).join();
 
         Integer result2Partitions = new SimplifiedMapReduce<List<String>, Integer, Integer>(2, 2, MAX_RETRIES)
-            .process(testData, this::countLettersInPartition, Integer::sum, 0);
+            .process(testData, this::countLettersInPartition, Integer::sum, 0).join();
 
         // Assert - All should produce the same result
         assertEquals(result4Partitions, result8Partitions,

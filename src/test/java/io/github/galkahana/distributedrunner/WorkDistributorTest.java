@@ -3,6 +3,7 @@ package io.github.galkahana.distributedrunner;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -35,7 +36,7 @@ public class WorkDistributorTest {
         );
 
         // Act
-        Integer result = distributor.process(numbers);
+        Integer result = distributor.process(numbers).join();
 
         // Assert
         assertEquals(result.intValue(), expectedSum * 2, "Sum of doubled numbers should match");
@@ -61,7 +62,7 @@ public class WorkDistributorTest {
         );
 
         // Act
-        distributor.process(numbers);
+        distributor.process(numbers).join();
 
         // Assert - Verify each number was processed exactly once
         assertEquals(processedCounts.size(), numbers.size(), "All numbers should be processed");
@@ -101,7 +102,7 @@ public class WorkDistributorTest {
         );
 
         // Act
-        Integer sum = distributor.process(numbers);
+        Integer sum = distributor.process(numbers).join();
 
         // Assert
         int expectedSum = numbers.stream().mapToInt(Integer::intValue).sum();
@@ -132,7 +133,9 @@ public class WorkDistributorTest {
         );
 
         // Act & Assert - This should throw after max retries exceeded
-        assertThrows(RuntimeException.class, () -> distributor.process(numbers));
+        CompletionException ex = assertThrows(CompletionException.class,
+            () -> distributor.process(numbers).join());
+        assertInstanceOf(RuntimeException.class, ex.getCause());
     }
 
     @Test
@@ -165,7 +168,7 @@ public class WorkDistributorTest {
         distributor.shutdown();
 
         // Assert
-        WorkDistributor.Stats stats = distributor.getStats();
+        Stats stats = distributor.getStats();
         int submitted = stats.submitted();
         int completed = stats.completed();
         int discarded = stats.discarded();
@@ -192,8 +195,8 @@ public class WorkDistributorTest {
         );
 
         // Act
-        distributor.process(numbers);
-        WorkDistributor.Stats stats = distributor.getStats();
+        distributor.process(numbers).join();
+        Stats stats = distributor.getStats();
 
         // Assert
         assertEquals(stats.submitted(), numbers.size(), "All tasks should be submitted");
