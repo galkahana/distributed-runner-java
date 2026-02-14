@@ -2,6 +2,27 @@
 
 A Java library for distributing work across threads with automatic retry, backpressure, and optional result accumulation. Supports batch processing, interactive workflows, and continuous streaming patterns.
 
+## Installation
+
+Add the JitPack repository and dependency to your `pom.xml`:
+
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.galkahana</groupId>
+        <artifactId>distributed-runner-java</artifactId>
+        <version>v1.0</version>
+    </dependency>
+</dependencies>
+```
+
 ## Use Cases
 
 - [**Partitioned Parallel Processing**](#1-partitioned-parallel-processing) — Split data into partitions, process each in parallel (side-effect-only)
