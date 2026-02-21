@@ -3,8 +3,11 @@ package io.github.galkahana.distributedrunner;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -176,6 +179,38 @@ public class WorkDistributorTest {
         assertEquals(submitted, totalTasks, "All tasks should have been submitted");
         assertTrue(completed > 0, "Some tasks should have completed");
         assertTrue(discarded > 0, "Some tasks should have been discarded");
+    }
+
+    @Test
+    public void testAllWorkers_EachReceiveTasks() throws Exception {
+        CountDownLatch allWorkersActive = new CountDownLatch(NUM_WORKERS);
+        Set<String> workerThreadNames = ConcurrentHashMap.newKeySet();
+
+        List<Integer> numbers = IntStream.range(0, NUM_WORKERS * 5)
+            .boxed()
+            .collect(Collectors.toList());
+
+        WorkDistributor<Integer, Void, Void> distributor = new WorkDistributor<>(
+            NUM_WORKERS,
+            QUEUE_CAPACITY,
+            MAX_RETRIES,
+            num -> {
+                workerThreadNames.add(Thread.currentThread().getName());
+                allWorkersActive.countDown();
+                assertTrue(allWorkersActive.await(5, TimeUnit.SECONDS),
+                    "Timed out waiting for all workers to become active");
+                return null;
+            }
+        );
+
+        // Act
+        distributor.process(numbers).join();
+
+        // Assert - every worker thread should have processed at least one task
+        // final assertion makes sure task execution actually happened, otherwise the test could pass without workers doing any work
+        // by avoiding the exec run at all.
+        assertEquals(NUM_WORKERS, workerThreadNames.size(),
+            "All " + NUM_WORKERS + " workers should have received tasks");
     }
 
     @Test
