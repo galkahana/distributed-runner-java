@@ -18,7 +18,7 @@ Add the JitPack repository and dependency to your `pom.xml`:
     <dependency>
         <groupId>com.github.galkahana</groupId>
         <artifactId>distributed-runner-java</artifactId>
-        <version>v1.0</version>
+        <version>v1.0.0</version>
     </dependency>
 </dependencies>
 ```
